@@ -23,14 +23,14 @@ const UserSchema = Schema({
 
 UserSchema.pre('save', function(next) {
   return bcrypt
-  .hash(this.password, 10)
+  .hash(this.password, SALT_ROUNDS)
   .then(hash => {
     this.password = hash;
 
     return next();
   })
   .catch(err => {
-    return next(err);
+    return next({ err: err.message });
   })
   // https://github.com/kelektiv/node.bcrypt.js#usage
   // Fill this middleware in with the Proper password encrypting, bcrypt.hash()
@@ -39,7 +39,10 @@ UserSchema.pre('save', function(next) {
 });
 
 UserSchema.methods.checkPassword = function(plainTextPW, callBack) {
-  return bcrypt.compared(plainTextPW, this.password);
+  bcrypt.compare(plainTextPW, this.password, function(err, same) {
+    if (err) {return callback(err)}
+    else return callback(null, same)
+  })
   // https://github.com/kelektiv/node.bcrypt.js#usage
   // Fill this method in with the Proper password comparing, bcrypt.compare()
   // Your controller will be responsible for sending the information here for password comparison
